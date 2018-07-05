@@ -18,42 +18,46 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+from __future__ import print_function
 
-import urllib
-try:
-    import simplejson as json
-except ImportError:
-    import json
-import os
-import httplib
-import mimetypes
-import re
 import csv
+import json
+import mimetypes
+import os
+import re
+
+try:
+    from urllib.request import urlopen
+except ImportError:
+    from urllib import urlopen
+
+try:
+    from http.client import HTTP
+except ImportError:
+    from httplib import HTTP
 
 
 # This is the main interface class. You can see an example of it in use
 # below, implementing a command-line tool, but you basically just instantiate
-# dstk = DSTK()
-# and then call the method you want
+# dstk = DSTK() and then call the method you want
 # coordinates = dstk.ip2coordinates('12.34.56.78')
 # The full documentation is at http://www.datasciencetoolkit.org/developerdocs
 class DSTK:
-
     api_base = None
 
     def __init__(self, options=None):
         if options is None:
             options = {}
 
-        defaultOptions = {
+        default_optionss = {
             'apiBase': 'http://www.datasciencetoolkit.org',
             'checkVersion': True
         }
 
         if 'DSTK_API_BASE' in os.environ:
-            defaultOptions['apiBase'] = os.environ['DSTK_API_BASE']
+            default_optionss['apiBase'] = os.environ['DSTK_API_BASE']
 
-        for key, value in defaultOptions.items():
+        for key, value in list(default_optionss.items()):
             if key not in options:
                 options[key] = value
 
@@ -63,29 +67,31 @@ class DSTK:
             self.check_version()
 
     def check_version(self):
-
         required_version = 40
 
-        api_url = self.api_base+'/info'
+        api_url = self.api_base + '/info'
 
         try:
-            response_string = urllib.urlopen(api_url).read()
+            response_string = urlopen(api_url).read()
             response = json.loads(response_string)
-        except:
-            raise Exception('The server at "'+self.api_base+'" doesn\'t seem to be running DSTK, no version information found.')
+        except Exception:
+            raise Exception(
+                'The server at "' + self.api_base +
+                '" doesn\'t seem to be running DSTK, no version information found.')
 
         actual_version = response['version']
         if actual_version < required_version:
-            raise Exception('DSTK: Version '+str(actual_version)+' found at "'+api_url+'" but '+str(required_version)+' is required')
+            raise Exception(
+                'DSTK: Version ' + str(actual_version) + ' found at "' + api_url + '" but ' +
+                str(required_version) + ' is required')
 
     def ip2coordinates(self, ips):
-
         if not isinstance(ips, (list, tuple)):
             ips = [ips]
 
-        api_url = self.api_base+'/ip2coordinates'
+        api_url = self.api_base + '/ip2coordinates'
         api_body = json.dumps(ips)
-        response_string = urllib.urlopen(api_url, api_body).read()
+        response_string = urlopen(api_url, api_body).read()
 
         response = json.loads(response_string)
 
@@ -95,13 +101,12 @@ class DSTK:
         return response
 
     def street2coordinates(self, addresses):
-
         if not isinstance(addresses, (list, tuple)):
             addresses = [addresses]
 
-        api_url = self.api_base+'/street2coordinates'
+        api_url = self.api_base + '/street2coordinates'
         api_body = json.dumps(addresses)
-        response_string = urllib.urlopen(api_url, api_body).read()
+        response_string = urlopen(api_url, api_body).read()
         response = json.loads(response_string)
 
         if 'error' in response:
@@ -110,10 +115,9 @@ class DSTK:
         return response
 
     def coordinates2politics(self, coordinates):
-
-        api_url = self.api_base+'/coordinates2politics'
+        api_url = self.api_base + '/coordinates2politics'
         api_body = json.dumps(coordinates)
-        response_string = urllib.urlopen(api_url, api_body).read()
+        response_string = urlopen(api_url, api_body).read()
         response = json.loads(response_string)
 
         if 'error' in response:
@@ -122,10 +126,9 @@ class DSTK:
         return response
 
     def text2places(self, text):
-
-        api_url = self.api_base+'/text2places'
+        api_url = self.api_base + '/text2places'
         api_body = text
-        response_string = urllib.urlopen(api_url, api_body).read()
+        response_string = urlopen(api_url, api_body).read()
         response = json.loads(response_string)
 
         if 'error' in response:
@@ -134,19 +137,15 @@ class DSTK:
         return response
 
     def file2text(self, file_name, file_data):
-
         host = self.api_base.replace('http://', '')
-
-        response = post_multipart(host,
-                                  '/file2text',[],[('inputfile', file_name, file_data)])
+        response = post_multipart(host, '/file2text', [], [('inputfile', file_name, file_data)])
 
         return response
 
     def text2sentences(self, text):
-
-        api_url = self.api_base+'/text2sentences'
+        api_url = self.api_base + '/text2sentences'
         api_body = text
-        response_string = urllib.urlopen(api_url, api_body).read()
+        response_string = urlopen(api_url, api_body).read()
         response = json.loads(response_string)
 
         if 'error' in response:
@@ -155,10 +154,9 @@ class DSTK:
         return response
 
     def html2text(self, html):
-
-        api_url = self.api_base+'/html2text'
+        api_url = self.api_base + '/html2text'
         api_body = html
-        response_string = urllib.urlopen(api_url, api_body).read()
+        response_string = urlopen(api_url, api_body).read()
         response = json.loads(response_string)
 
         if 'error' in response:
@@ -168,9 +166,9 @@ class DSTK:
 
     def html2story(self, html):
 
-        api_url = self.api_base+'/html2story'
+        api_url = self.api_base + '/html2story'
         api_body = html
-        response_string = urllib.urlopen(api_url, api_body).read()
+        response_string = urlopen(api_url, api_body).read()
         response = json.loads(response_string)
 
         if 'error' in response:
@@ -180,9 +178,9 @@ class DSTK:
 
     def text2people(self, text):
 
-        api_url = self.api_base+'/text2people'
+        api_url = self.api_base + '/text2people'
         api_body = text
-        response_string = urllib.urlopen(api_url, api_body).read()
+        response_string = urlopen(api_url, api_body).read()
         response = json.loads(response_string)
 
         if 'error' in response:
@@ -192,15 +190,16 @@ class DSTK:
 
     def text2times(self, text):
 
-        api_url = self.api_base+'/text2times'
+        api_url = self.api_base + '/text2times'
         api_body = text
-        response_string = urllib.urlopen(api_url, api_body).read()
+        response_string = urlopen(api_url, api_body).read()
         response = json.loads(response_string)
 
         if 'error' in response:
             raise Exception(response['error'])
 
         return response
+
 
 # We need to post files as multipart form data, and Python has no native function for
 # that, so these utility functions implement what we need.
@@ -213,7 +212,7 @@ def post_multipart(host, selector, fields, files):
     Return the server's response page.
     """
     content_type, body = encode_multipart_formdata(fields, files)
-    h = httplib.HTTP(host)
+    h = HTTP(host)
     h.putrequest('POST', selector)
     h.putheader('content-type', content_type)
     h.putheader('content-length', str(len(body)))
@@ -221,6 +220,7 @@ def post_multipart(host, selector, fields, files):
     h.send(body)
     errcode, errmsg, headers = h.getreply()
     return h.file.read()
+
 
 def encode_multipart_formdata(fields, files):
     """
@@ -248,14 +248,15 @@ def encode_multipart_formdata(fields, files):
     content_type = 'multipart/form-data; boundary=%s' % BOUNDARY
     return content_type, body
 
+
 def guess_content_type(filename):
     return mimetypes.guess_type(filename)[0] or 'application/octet-stream'
+
 
 # End of the interface. The rest of this file is an example implementation of a
 # command line client.
 
 def ip2coordinates_cli(dstk, options, inputs, output):
-
     writer = csv.writer(sys.stdout)
 
     input_ips = []
@@ -264,70 +265,70 @@ def ip2coordinates_cli(dstk, options, inputs, output):
         if ip_match is not None:
             input_ips.append(ip_match.group(0))
         else:
-            print 'No match'
+            print('No match')
 
     result = dstk.ip2coordinates(input_ips)
 
     if options['showHeaders']:
-        for ip, info in result.items():
+        for ip, info in list(result.items()):
             if info is None:
                 continue
             row = ['ip_address']
-            for key, value in info.items():
+            for key, value in list(info.items()):
                 row.append(str(key))
             writer.writerow(row)
             break
 
-    for ip, info in result.items():
+    for ip, info in list(result.items()):
 
         if info is None:
             info = {}
 
         row = [ip]
-        for key, value in info.items():
+        for key, value in list(info.items()):
             row.append(str(value))
 
         writer.writerow(row)
 
     return
 
-def street2coordinates_cli(dstk, options, inputs, output):
 
+def street2coordinates_cli(dstk, options, inputs, output):
     writer = csv.writer(sys.stdout)
 
     result = dstk.street2coordinates(inputs)
 
     if options['showHeaders']:
-        for ip, info in result.items():
+        for ip, info in list(result.items()):
             if info is None:
                 continue
             row = ['address']
-            for key, value in info.items():
+            for key, value in list(info.items()):
                 row.append(str(key))
             writer.writerow(row)
             break
 
-    for ip, info in result.items():
+    for ip, info in list(result.items()):
 
         if info is None:
             info = {}
 
         row = [ip]
-        for key, value in info.items():
+        for key, value in list(info.items()):
             row.append(str(value))
 
         writer.writerow(row)
 
     return
 
-def coordinates2politics_cli(dstk, options, inputs, output):
 
+def coordinates2politics_cli(dstk, options, inputs, output):
     writer = csv.writer(output)
 
     coordinates_list = []
     for input in inputs:
         coordinates = input.split(',')
-        if len(coordinates)!=2:
+        if len(coordinates) != 2:
             output.write('You must enter coordinates as a series of comma-separated pairs, eg 37.76,-122.42')
             exit(-1)
         coordinates_list.append([coordinates[0], coordinates[1]])
@@ -344,19 +345,20 @@ def coordinates2politics_cli(dstk, options, inputs, output):
         politics = info['politics']
 
         for politic in politics:
-            row = [location['latitude'],
-                   location['longitude'],
-                   politic['name'],
-                   politic['code'],
-                   politic['type'],
-                   politic['friendly_type'],
-                   ]
+            row = [
+                location['latitude'],
+                location['longitude'],
+                politic['name'],
+                politic['code'],
+                politic['type'],
+                politic['friendly_type'],
+            ]
             writer.writerow(row)
 
     return
 
-def file2text_cli(dstk, options, inputs, output):
 
+def file2text_cli(dstk, options, inputs, output):
     for file_name in inputs:
         if os.path.isdir(file_name):
             children = os.listdir(file_name)
@@ -367,14 +369,14 @@ def file2text_cli(dstk, options, inputs, output):
         else:
             file_data = get_file_or_url_contents(file_name)
             if options['showHeaders']:
-                output.write('--File--: '+file_name+"\n")
+                output.write('--File--: ' + file_name + "\n")
             result = dstk.file2text(file_name, file_data)
 
-            print result
+            print(result)
     return
 
-def text2places_cli(dstk, options, inputs, output):
 
+def text2places_cli(dstk, options, inputs, output):
     writer = csv.writer(output)
 
     if options['showHeaders']:
@@ -401,9 +403,9 @@ def text2places_cli(dstk, options, inputs, output):
 
     return
 
+
 def text2places_format(result, file_name, writer):
     for info in result:
-
         row = [info['latitude'],
                info['longitude'],
                info['name'],
@@ -412,15 +414,15 @@ def text2places_format(result, file_name, writer):
                info['end_index'],
                info['matched_string'],
                file_name
-        ]
+               ]
         writer.writerow(row)
     return
 
-def html2text_cli(dstk, options, inputs, output):
 
+def html2text_cli(dstk, options, inputs, output):
     if options['from_stdin']:
         result = dstk.html2text("\n".join(inputs))
-        print result['text']
+        print(result['text'])
         return
 
     for file_name in inputs:
@@ -433,16 +435,16 @@ def html2text_cli(dstk, options, inputs, output):
         else:
             file_data = get_file_or_url_contents(file_name)
             if options['showHeaders']:
-                output.write('--File--: '+file_name+"\n")
+                output.write('--File--: ' + file_name + "\n")
             result = dstk.html2text(file_data)
-            print result['text']
+            print(result['text'])
     return
 
-def text2sentences_cli(dstk, options, inputs, output):
 
+def text2sentences_cli(dstk, options, inputs, output):
     if options['from_stdin']:
         result = dstk.text2sentences("\n".join(inputs))
-        print result['sentences']
+        print(result['sentences'])
         return
 
     for file_name in inputs:
@@ -455,17 +457,17 @@ def text2sentences_cli(dstk, options, inputs, output):
         else:
             file_data = get_file_or_url_contents(file_name)
             if options['showHeaders']:
-                output.write('--File--: '+file_name+"\n")
+                output.write('--File--: ' + file_name + "\n")
             result = dstk.text2sentences(file_data)
-            print result['sentences']
+            print(result['sentences'])
 
     return
 
-def html2story_cli(dstk, options, inputs, output):
 
+def html2story_cli(dstk, options, inputs, output):
     if options['from_stdin']:
         result = dstk.html2story("\n".join(inputs))
-        print result['story']
+        print(result['story'])
         return
 
     for file_name in inputs:
@@ -478,14 +480,14 @@ def html2story_cli(dstk, options, inputs, output):
         else:
             file_data = get_file_or_url_contents(file_name)
             if options['showHeaders']:
-                output.write('--File--: '+file_name+"\n")
+                output.write('--File--: ' + file_name + "\n")
             result = dstk.html2story(file_data)
-            print result['story']
+            print(result['story'])
 
     return
 
-def text2people_cli(dstk, options, inputs, output):
 
+def text2people_cli(dstk, options, inputs, output):
     writer = csv.writer(sys.stdout)
 
     if options['showHeaders']:
@@ -512,9 +514,9 @@ def text2people_cli(dstk, options, inputs, output):
 
     return
 
+
 def text2people_format(result, file_name, writer):
     for info in result:
-
         row = [
             info['matched_string'],
             info['first_name'],
@@ -528,8 +530,8 @@ def text2people_format(result, file_name, writer):
         writer.writerow(row)
     return
 
-def text2times_cli(dstk, options, inputs, output):
 
+def text2times_cli(dstk, options, inputs, output):
     writer = csv.writer(sys.stdout)
 
     if options['showHeaders']:
@@ -556,9 +558,9 @@ def text2times_cli(dstk, options, inputs, output):
 
     return
 
+
 def text2times_format(result, file_name, writer):
     for info in result:
-
         row = [
             info['matched_string'],
             info['time_string'],
@@ -571,54 +573,55 @@ def text2times_format(result, file_name, writer):
         writer.writerow(row)
     return
 
+
 def get_file_or_url_contents(file_name):
     if re.match(r'http://', file_name):
-        file_data = urllib.urlopen(file_name).read()
+        file_data = urlopen(file_name).read()
     else:
         file_data = open(file_name).read()
     return file_data
 
-def print_usage(message=''):
 
-    print message
-    print "Usage:"
-    print "python dstk.py <command> [-a/--api_base 'http://yourhost.com'] [-h/--show_headers] <inputs>"
-    print "Where <command> is one of:"
-    print "  ip2coordinates        (lat/lons for IP addresses)"
-    print "  street2coordinates    (lat/lons for postal addresses)"
-    print "  coordinates2politics  (country/state/county/constituency/etc for lat/lon)"
-    print "  text2places           (lat/lons for places mentioned in unstructured text)"
-    print "  file2text             (PDF/Excel/Word to text, and OCR on PNG/Jpeg/Tiff images)"
-    print "  text2sentences        (parts of the text that look like proper sentences)"
-    print "  html2text             (text version of the HTML document)"
-    print "  html2story            (text version of the HTML with no boilerplate)"
-    print "  text2people           (gender for people mentioned in unstructured text)"
-    print "  text2times            (times and dates mentioned in unstructured text)"
-    print "If no inputs are specified, then standard input will be read and used"
-    print "See http://www.datasciencetoolkit.org/developerdocs for more details"
-    print "Examples:"
-    print "python dstk.py ip2coordinates 67.169.73.113"
-    print "python dstk.py street2coordinates \"2543 Graystone Place, Simi Valley, CA 93065\""
-    print "python dstk.py file2text scanned.jpg"
+def print_usage(message=''):
+    print(message)
+    print("Usage:")
+    print("python dstk.py <command> [-a/--api_base 'http://yourhost.com'] [-h/--show_headers] <inputs>")
+    print("Where <command> is one of:")
+    print("  ip2coordinates        (lat/lons for IP addresses)")
+    print("  street2coordinates    (lat/lons for postal addresses)")
+    print("  coordinates2politics  (country/state/county/constituency/etc for lat/lon)")
+    print("  text2places           (lat/lons for places mentioned in unstructured text)")
+    print("  file2text             (PDF/Excel/Word to text, and OCR on PNG/Jpeg/Tiff images)")
+    print("  text2sentences        (parts of the text that look like proper sentences)")
+    print("  html2text             (text version of the HTML document)")
+    print("  html2story            (text version of the HTML with no boilerplate)")
+    print("  text2people           (gender for people mentioned in unstructured text)")
+    print("  text2times            (times and dates mentioned in unstructured text)")
+    print("If no inputs are specified, then standard input will be read and used")
+    print("See http://www.datasciencetoolkit.org/developerdocs for more details")
+    print("Examples:")
+    print("python dstk.py ip2coordinates 67.169.73.113")
+    print("python dstk.py street2coordinates \"2543 Graystone Place, Simi Valley, CA 93065\"")
+    print("python dstk.py file2text scanned.jpg")
 
     exit(-1)
 
-if __name__ == '__main__':
 
+if __name__ == '__main__':
     import sys
 
     commands = {
-        'ip2coordinates': { 'handler': ip2coordinates_cli },
-        'street2coordinates': { 'handler': street2coordinates_cli },
-        'coordinates2politics': { 'handler': coordinates2politics_cli },
-        'text2places': { 'handler': text2places_cli },
-        'file2text': { 'handler': file2text_cli },
-        'text2sentences': { 'handler': text2sentences_cli },
-        'html2text': { 'handler': html2text_cli },
-        'html2story': { 'handler': html2story_cli },
-        'text2people': { 'handler': text2people_cli },
-        'text2times': { 'handler': text2times_cli },
-        }
+        'ip2coordinates': {'handler': ip2coordinates_cli},
+        'street2coordinates': {'handler': street2coordinates_cli},
+        'coordinates2politics': {'handler': coordinates2politics_cli},
+        'text2places': {'handler': text2places_cli},
+        'file2text': {'handler': file2text_cli},
+        'text2sentences': {'handler': text2sentences_cli},
+        'html2text': {'handler': html2text_cli},
+        'html2story': {'handler': html2story_cli},
+        'text2people': {'handler': text2people_cli},
+        'text2times': {'handler': text2times_cli},
+    }
     switches = {
         'api_base': True,
         'show_headers': True
@@ -634,7 +637,7 @@ if __name__ == '__main__':
             ignore_next = False
             continue
 
-        if arg[0]=='-' and len(arg)>1:
+        if arg[0] == '-' and len(arg) > 1:
             if len(arg) == 2:
                 letter = arg[1]
                 if letter == 'a':
@@ -645,12 +648,12 @@ if __name__ == '__main__':
                 option = arg[2:]
 
             if option not in switches:
-                print_usage('Unknown option "'+arg+'"')
+                print_usage('Unknown option "' + arg + '"')
 
             if option == 'api_base':
-                if (index+2) >= len(sys.argv):
-                    print_usage('Missing argument for option "'+arg+'"')
-                options['apiBase'] = sys.argv[index+2]
+                if (index + 2) >= len(sys.argv):
+                    print_usage('Missing argument for option "' + arg + '"')
+                options['apiBase'] = sys.argv[index + 2]
                 ignore_next = True
             elif option == 'show_headers':
                 options['showHeaders'] = True
@@ -659,14 +662,14 @@ if __name__ == '__main__':
             if command is None:
                 command = arg
                 if command not in commands:
-                    print_usage('Unknown command "'+arg+'"')
+                    print_usage('Unknown command "' + arg + '"')
             else:
                 inputs.append(arg)
 
     if command is None:
         print_usage('No command specified')
 
-    if len(inputs)<1:
+    if len(inputs) < 1:
         options['from_stdin'] = True
         inputs = sys.stdin.readlines()
     else:
